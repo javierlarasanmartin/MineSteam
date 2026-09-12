@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const USER_AGENT = 'MineSteam/2.4.0';
+const USER_AGENT = 'MineSteam/2.4.1';
 
 function normalizeLoader(loader) {
     const value = String(loader || '').trim().toLowerCase();

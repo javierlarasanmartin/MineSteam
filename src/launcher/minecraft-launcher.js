@@ -243,7 +243,7 @@ async function getVersionManifest() {
         const response = await axios.get(activeMirror.manifestUrl, {
             timeout: 20000,
             headers: {
-                'User-Agent': 'MineSteam/2.4.0',
+                'User-Agent': 'MineSteam/2.4.1',
                 'Accept': 'application/json'
             }
         });
@@ -333,7 +333,7 @@ async function downloadFile(
                     httpsAgent,
                     httpAgent,
                     headers: {
-                        'User-Agent': 'MineSteam/2.4.0',
+                        'User-Agent': 'MineSteam/2.4.1',
                         'Accept': '*/*',
                         'Connection': 'keep-alive'
                     }
@@ -593,7 +593,7 @@ async function downloadMinecraftVanilla(
         {
             timeout: 20000,
             headers: {
-                'User-Agent': 'MineSteam/2.4.0'
+                'User-Agent': 'MineSteam/2.4.1'
             }
         }
     );
@@ -1704,7 +1704,7 @@ function resolveMinecraftArg(
             'MineSteam',
 
         launcher_version:
-            '2.4.0',
+            '2.4.1',
 
         classpath:
             ctx.classpath,
@@ -3014,7 +3014,7 @@ async function searchModrinth(
             {
                 timeout: 20000,
                 headers: {
-                    'User-Agent': 'MineSteam/2.4.0'
+                    'User-Agent': 'MineSteam/2.4.1'
                 }
             }
         );

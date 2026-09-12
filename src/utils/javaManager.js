@@ -239,7 +239,7 @@ async function downloadFile(url, destPath, retries = 3) {
         try {
             const response = await axios({
                 method: 'GET', url, responseType: 'stream', timeout: 300000,
-                headers: { 'User-Agent': 'MineSteam/2.4.0' }
+                headers: { 'User-Agent': 'MineSteam/2.4.1' }
             });
             const writer = fs.createWriteStream(destPath);
             response.data.pipe(writer);

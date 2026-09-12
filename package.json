@@ -1,7 +1,7 @@
 {
   "name": "minesteam",
-  "version": "2.4.0",
-  "description": "MineSteam 2.4.0 — Launcher de Minecraft con instancias, perfiles, servidores, Modrinth, contenido, backups, reparación, Java y gestión avanzada.",
+  "version": "2.4.1",
+  "description": "MineSteam 2.4.1 — Launcher de Minecraft con instancias, perfiles, servidores, Modrinth, contenido, backups, reparación, Java y gestión avanzada.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

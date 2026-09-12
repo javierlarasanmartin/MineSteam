@@ -38,7 +38,7 @@ async function getAvailableVersions(minecraftVersion) {
   try {
     const response = await axios.get(`${MAVEN_ROOT}/maven-metadata.xml`, {
       timeout: 20000,
-      headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': 'application/xml,text/xml,*/*' }
+      headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/xml,text/xml,*/*' }
     });
     const xml = String(response.data || '');
     const versions = [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map(m => m[1]);
@@ -48,7 +48,7 @@ async function getAvailableVersions(minecraftVersion) {
     try {
       const index = await axios.get(`${MAVEN_ROOT}/`, {
         timeout: 20000,
-        headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': 'text/html,*/*' }
+        headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'text/html,*/*' }
       });
       const versions = [...String(index.data || '').matchAll(/href=[\"']([^/\"']+\/)[\"']/gi)]
         .map(m => m[1].replace(/\/$/, ''))

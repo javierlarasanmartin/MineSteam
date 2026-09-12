@@ -532,7 +532,7 @@ function setupIpcHandlers() {
 app.whenReady().then(() => {
   setupIpcHandlers();
   createWindow();
-  logger.info('MineSteam iniciado (v2.4.0)');
+  logger.info('MineSteam iniciado (v2.4.1)');
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

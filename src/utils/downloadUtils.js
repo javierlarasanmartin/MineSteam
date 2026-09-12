@@ -28,7 +28,7 @@ async function downloadFileParallel(url, destPath, retries = 3) {
           method: 'GET', url, responseType: 'stream', timeout: 180000,
           maxRedirects: 10, maxContentLength: Infinity, maxBodyLength: Infinity,
           httpsAgent, httpAgent,
-          headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': '*/*', 'Connection': 'keep-alive' }
+          headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': '*/*', 'Connection': 'keep-alive' }
         });
         const writer = fs.createWriteStream(part, { highWaterMark: 1024 * 1024 });
         await new Promise((resolve, reject) => {

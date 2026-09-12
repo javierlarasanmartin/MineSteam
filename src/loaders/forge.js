@@ -30,7 +30,7 @@ function ensureForgeLauncherProfile(instanceMinecraftDir, minecraftVersion) {
 async function getAvailableVersions(minecraftVersion) {
   const metadataUrl = 'https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml';
   try {
-    const response = await axios.get(metadataUrl, { timeout: 20000, headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': 'application/xml,text/xml,*/*' } });
+    const response = await axios.get(metadataUrl, { timeout: 20000, headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/xml,text/xml,*/*' } });
     const xml = String(response.data || '');
     const all = [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map(m => m[1]);
     const prefix = `${minecraftVersion}-`;
@@ -44,7 +44,7 @@ async function getAvailableVersions(minecraftVersion) {
   try {
     const promotions = await axios.get('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json', {
       timeout: 20000,
-      headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': 'application/json' }
+      headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/json' }
     });
     const promos = promotions.data?.promos || {};
     const result = [];
@@ -59,7 +59,7 @@ async function getAvailableVersions(minecraftVersion) {
     try {
       const index = await axios.get('https://maven.minecraftforge.net/net/minecraftforge/forge/', {
         timeout: 20000,
-        headers: { 'User-Agent': 'MineSteam/2.4.0', 'Accept': 'text/html,*/*' }
+        headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'text/html,*/*' }
       });
       const prefix = `${minecraftVersion}-`;
       const matches = [...String(index.data || '').matchAll(new RegExp(`href=[\"'](${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^/\"']+)/`, 'gi'))]

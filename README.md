@@ -1,4 +1,4 @@
-# MineSteam 2.4.0
+# MineSteam 2.4.1
 
 Launcher de Minecraft centrado en una experiencia sencilla para usuarios nuevos, con una interfaz **Steampunk + Minecraft Vanilla** y herramientas avanzadas para gestionar instancias.
 
@@ -48,7 +48,7 @@ npm run test:architecture
 ## Estructura
 
 ```text
-MineSteam-2.4.0/
+MineSteam-2.4.1/
 ├── assets/
 ├── scripts/
 ├── src/

@@ -4,7 +4,7 @@ const path = require('path');
 const { assertInstancePath, resolveInside } = require('../core/security');
 
 const API = 'https://api.modrinth.com/v2';
-const USER_AGENT = 'MineSteam/2.4.0';
+const USER_AGENT = 'MineSteam/2.4.1';
 
 const PROJECT_TYPES = {
   resourcepacks: 'resourcepack',

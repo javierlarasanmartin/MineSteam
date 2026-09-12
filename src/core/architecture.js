@@ -1,5 +1,5 @@
 /**
- * Arquitectura de MineSteam 2.4.0.
+ * Arquitectura de MineSteam 2.4.1.
  *
  * Este módulo expone los dominios nuevos sin cambiar aún el motor legacy.
  * La migración se hará módulo por módulo y cada paso podrá probarse
