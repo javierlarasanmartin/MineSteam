@@ -17,5 +17,4 @@
 - `minecraft-launcher.js` dividido en `installer.js`, `modpackService.js`, `gameLauncher.js` y `minecraft-launcher.js`.
 - `launchMinecraft`, `installModrinthModpack` y `repairInstance` partidos en funciones pequeñas; instalación del juego y del loader unificada en `installGameAndLoader` / `installLoader`.
 - Código repetido eliminado (descargas, comprobación de SHA-1, detección de Java) y dependencias sin uso (`express`, `dotenv`, `open`) fuera de `package.json` y del lockfile.
-- Formato y comentarios más naturales: sentencias partidas en varias líneas unidas, comentarios decorativos simplificados y mensajes de log sin emojis.
 - Versión 2.4.2 en `package.json`, lockfile, interfaz y cabeceras `User-Agent`.
