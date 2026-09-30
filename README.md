@@ -82,9 +82,3 @@ https://github.com/javierlarasanmartin/Minesteam
 
 MIT
 
-## Fase 6.1.2 — Bootstrap del renderer
-
-El arranque del renderer se encuentra separado en `src/renderer/bootstrap.js`.
-`renderer.js` conserva la lógica existente de la interfaz y ya no registra sus propios
-handlers de `DOMContentLoaded`. Esto permite seguir modularizando el renderer sin
-alterar el comportamiento de la interfaz.
