@@ -1,0 +1,546 @@
+        }
+    } catch (e) {
+        mostrarMensaje('❌ Error: ' + e.message);
+    } finally {
+        document.getElementById('form-instalar-modpack').style.display = 'block';
+        document.getElementById('modal-instalar-loading').style.display = 'none';
+    }
+}
+
+
+// ============================================
+// INSTANCIAS
+// ============================================
+
+function updateInstanceCount(count) {
+    const el = document.getElementById('profile-instances-count');
+    if (el) el.textContent = count;
+}
+
+async 
+
+
+
+// ============================================
+// HERRAMIENTAS
+// ============================================
+async function loadToolInstances() {
+    const box=document.getElementById('tool-instances-list'); if(!box) return;
+    const instances=await window.launcherAPI.getInstances();
+    if(!instances.length){ box.innerHTML='<div class="tool-card">No hay instancias instaladas.</div>'; return; }
+    box.innerHTML=instances.map(i=>`<div class="tool-card"><div><strong>${i.name}</strong><p>${i.version||'?'} · ${i.loader||'vanilla'}</p></div><div style="display:flex;gap:6px"><button class="btn-secondary tool-diagnose" data-path="${i.path}"><i class="fa-solid fa-stethoscope"></i></button><button class="btn-primary tool-repair" data-path="${i.path}"><i class="fa-solid fa-wrench"></i> Reparar</button></div></div>`).join('');
+    box.querySelectorAll('.tool-repair').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;b.textContent='Reparando...';const r=await window.launcherAPI.repairInstance(b.dataset.path);mostrarMensaje(r.success?'✅ Reparación completada':'❌ '+(r.error||'Error'));b.disabled=false;b.innerHTML='<i class="fa-solid fa-wrench"></i> Reparar';}));
+    box.querySelectorAll('.tool-diagnose').forEach(b=>b.addEventListener('click',async()=>{const r=await window.launcherAPI.diagnoseInstance(b.dataset.path);if(!r.success)return mostrarMensaje('❌ '+r.error);const issues=[];if(!r.minecraftPresent)issues.push('Minecraft base');if(r.missingFiles?.length)issues.push(`${r.missingFiles.length} archivos`);if(r.javaRequired&&(r.javaDetected||0)<r.javaRequired)issues.push(`Java ${r.javaRequired}`); if(r.languagesAvailable===false)issues.push('Idiomas de Minecraft');mostrarMensaje(issues.length?'⚠️ Problemas: '+issues.join(', '):'✅ Instancia saludable');}));
+}
+
+async function loadJavaManager() {
+    const box=document.getElementById('java-manager-list'); if(!box) return;
+    const data=await window.launcherAPI.getJavaStatus();
+    box.innerHTML=[8,17,21,25].map(v=>{const sys=(data.system||0)>=v,local=(data.installed||[]).includes(v);return `<div class="tool-card"><div><strong>Java ${v}</strong><p>${sys?'Disponible en el sistema':local?'Instalado en MineSteam':'No instalado'}</p></div><button class="${sys||local?'btn-secondary':'btn-primary'} java-install" data-version="${v}" ${sys||local?'disabled':''}>${sys||local?'✓ Disponible':'Descargar'}</button></div>`}).join('');
+    box.querySelectorAll('.java-install').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;b.textContent='Descargando...';const r=await window.launcherAPI.installJava(Number(b.dataset.version));mostrarMensaje(r.success?`✅ Java ${b.dataset.version} instalado`:'❌ '+(r.error||'Error'));loadJavaManager();}));
+}
+
+// ============================================
+// ACTIVIDAD RECIENTE
+// ============================================
+async function updateActivityGrid() {
+    const container = document.getElementById('activity-grid');
+    if (!container) return;
+    try {
+        const instances = await window.launcherAPI.getInstances();
+        const recent = instances.slice(-2).reverse();
+        if (recent.length === 0) {
+            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-muted);">No hay actividad reciente</div>`;
+            return;
+        }
+        container.innerHTML = recent.map(inst => `
+            <div class="activity-card">
+                <h4>${inst.name}</h4>
+                <div class="version">v${inst.version || '1.0.0'}</div>
+                <div class="news">
+                    <span><i class="fa-regular fa-clock"></i> ${timeAgo(inst.installedAt)}</span>
+                    <span class="badge">${inst.loader || 'Vanilla'}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) { console.error(e); }
+}
+
+// ============================================
+// BIBLIOTECA
+// ============================================
+async function updateLibrary() {
+    const container = document.getElementById('library-list');
+    if (!container) return;
+    try {
+        const instances = await window.launcherAPI.getInstances();
+        if (instances.length === 0) {
+            container.innerHTML = `<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:8px;">No hay modpacks</div>`;
+            return;
+        }
+        container.innerHTML = instances.slice(0, 5).map(inst => `
+            <div class="library-item">
+                <div class="info">
+                    <span class="name">${inst.name}</span>
+                    <span class="meta"><i class="fa-solid fa-cube"></i> ${inst.loader || 'Vanilla'} - ${inst.version || '?'}</span>
+                </div>
+                <button class="btn-play-green launch-btn-small" data-path="${inst.path}" style="padding:4px 12px; border-radius:6px; font-size:11px; font-weight:600;">JUGAR</button>
+            </div>
+        `).join('');
+        document.querySelectorAll('.launch-btn-small').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const path = this.dataset.path;
+                const ram = parseInt(localStorage.getItem('ram')) || 4096;
+                await launchGame(path, ram);
+            });
+        });
+    } catch (e) { console.error(e); }
+}
+
+// ============================================
+// FEATURED MODPACK
+// ============================================
+async function updateFeaturedModpack() {
+    try {
+        const instances = await window.launcherAPI.getInstances();
+        if (instances.length === 0) {
+            document.getElementById('featured-title').textContent = 'Bienvenido a MineSteam';
+            document.getElementById('featured-desc').textContent = 'Comienza tu aventura instalando un modpack';
+            document.getElementById('featured-loader').textContent = 'Sin modpacks instalados';
+            document.getElementById('featured-mods').textContent = 'Explora la biblioteca';
+            return;
+        }
+        // Podríamos elegir el más reciente o el más jugado (por ahora, el último)
+        const last = instances[instances.length - 1];
+        document.getElementById('featured-title').textContent = last.name;
+        document.getElementById('featured-desc').textContent = `Listo para jugar`;
+        document.getElementById('featured-loader').textContent = `${last.loader || 'Vanilla'} ${last.version || '?'}`;
+        document.getElementById('featured-mods').textContent = `${last.type || 'Modpack'}`;
+        const playBtn = document.getElementById('btn-jugar');
+        playBtn.onclick = async () => {
+            await launchGame(last.path);
+        };
+    } catch (e) { console.error(e); }
+}
+
+// ============================================
+// LANZAR JUEGO
+// ============================================
+async function launchGame(instancePath) {
+    mostrarMensaje('🚀 Lanzando Minecraft...');
+    try {
+        const cfg = await window.launcherAPI.getInstanceConfig(instancePath);
+        let auth = null;
+        const session = await null;
+        if (session && session.user) {
+            auth = { username: session.user.name, accessToken: session.user.accessToken || '0', uuid: session.user.uuid };
+        } else {
+            const offline = await window.launcherAPI.getCurrentUser();
+            if (offline) auth = { username: offline.name, accessToken: offline.accessToken || '0', uuid: offline.uuid };
+        }
+        const result = await window.launcherAPI.launchMinecraft({
+            instancePath,
+            ram: Number(cfg?.ram || 4096),
+            javaVersion: cfg?.javaVersion ?? undefined,
+            jvmArgs: cfg?.jvmArgs || '',
+            auth
+        });
+        if (result?.success) {
+            markInstanceLaunching(instancePath);
+            mostrarMensaje('🎮 Minecraft se está iniciando. Puedes seguir navegando por MineSteam.');
+        } else {
+            mostrarMensaje('❌ ' + (result?.error || 'No se pudo iniciar Minecraft'));
+        }
+    } catch (e) {
+        mostrarMensaje('❌ Error al lanzar: ' + e.message);
+    }
+}
+
+const runningInstances = new Map();
+function markInstanceLaunching(instancePath) {
+    runningInstances.set(instancePath, { startedAt: Date.now(), state: 'starting' });
+    updateRunningInstanceButtons();
+}
+function updateRunningInstanceButtons() {
+    document.querySelectorAll('.launch-btn, .launch-btn-small, #btn-jugar').forEach(btn => {
+        const path = btn.dataset.path || btn.getAttribute('data-path');
+        if (!path || !runningInstances.has(path)) return;
+        btn.disabled = false;
+        if (btn.classList.contains('launch-btn') || btn.classList.contains('launch-btn-small')) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> En ejecución';
+        }
+    });
+}
+
+// ============================================
+// AUTENTICACIÓN OFFLINE
+// ============================================
+async function checkSession() {
+  try {
+    const user = await window.launcherAPI.getCurrentUser();
+    if (user) { localStorage.setItem('offlineUser', user.name); updateProfileUI(user); }
+    else { localStorage.removeItem('offlineUser'); updateProfileUI(null); }
+  } catch (_) { updateProfileUI(null); }
+}
+
+async function loginOffline() {
+  const username = document.getElementById('offline-username')?.value?.trim();
+  if (!username) {
+    mostrarMensaje('⚠️ Por favor, ingresa un nombre de usuario');
+    return;
+  }
+  try {
+    const result = await window.launcherAPI.loginOffline(username);
+    if (!result.success) throw new Error(result.error || 'No se pudo iniciar sesión offline');
+    localStorage.setItem('offlineUser', result.user.name);
+    updateProfileUI(result.user);
+    loadAccounts();
+    mostrarMensaje(`✅ Sesión offline iniciada como ${result.user.name}`);
+  } catch (error) {
+    console.error('Error en login offline:', error);
+    mostrarMensaje('❌ Error: ' + error.message);
+  }
+}
+
+async function logout() {
+  await window.launcherAPI.logoutOffline();
+  localStorage.removeItem('offlineUser');
+  updateProfileUI(null);
+  loadAccounts();
+  mostrarMensaje('Sesión offline cerrada');
+}
+
+function updateProfileUI(user) {
+  const nameDisplay = document.getElementById('username-display');
+  const statusText = document.getElementById('status-text');
+  const profileName = document.getElementById('profile-name');
+  const profileType = document.getElementById('profile-type');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  if (user) {
+    if (nameDisplay) nameDisplay.textContent = user.name;
+    if (statusText) {
+      statusText.textContent = 'Modo offline';
+      statusText.style.color = '#f39c12';
+    }
+    profileName.textContent = user.name;
+    profileType.textContent = '🔓 Cuenta offline';
+    profileType.style.color = '#f39c12';
+    updateProfileAvatar(user.name);
+    if (logoutBtn) {
+      logoutBtn.style.display = 'inline-flex';
+      logoutBtn.textContent = 'Cerrar Sesión';
+    }
+  } else {
+    if (nameDisplay) nameDisplay.textContent = 'Invitado';
+    if (statusText) {
+      statusText.textContent = 'Modo offline';
+      statusText.style.color = '#6b7280';
+    }
+    profileName.textContent = 'Jugador Offline';
+    profileType.textContent = '🔓 Sin sesión activa';
+    profileType.style.color = '#6b7280';
+    updateProfileAvatar(null);
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+}
+
+// ============================================
+// CACHÉ
+// ============================================
+async function updateCacheSize() {
+    try {
+        const size = await window.launcherAPI.getCacheSize();
+        const el = document.getElementById('cache-size');
+        if (el) {
+            const mb = (size / 1024 / 1024).toFixed(2);
+            el.innerHTML = `📦 ${mb} MB en caché`;
+        }
+    } catch (e) {
+        document.getElementById('cache-size').textContent = '⚠️ Error';
+    }
+}
+
+async function clearCache() {
+    if (!confirm('¿Limpiar caché? Se descargarán de nuevo los assets.')) return;
+    try {
+        const result = await window.launcherAPI.clearCache();
+        if (result.success) {
+            mostrarMensaje('✅ Caché limpiada');
+            await updateCacheSize();
+        } else {
+            mostrarMensaje('❌ Error: ' + (result.error || 'Error desconocido'));
+        }
+    } catch (e) {
+        mostrarMensaje('❌ Error: ' + e.message);
+    }
+}
+
+// ============================================
+// TOAST
+// ============================================
+function mostrarMensaje(mensaje) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+
+// ============================================
+// MINESTEAM 2.4.1
+// ============================================
+let detailInstancePath = null;
+let terminalEntries = [];
+let terminalFilter = 'all';
+let terminalSearch = '';
+
+function terminalOpen() {
+  const nav = document.querySelector('[data-target="page-terminal"]');
+  if (nav) nav.click();
+  const badge = document.getElementById('terminal-badge');
+  if (badge) badge.style.display = 'inline-flex';
+}
+
+function terminalAppend(entry) {
+  const normalized = {
+    level: ['error','warn','info'].includes(entry?.level) ? entry.level : 'info',
+    source: String(entry?.source || 'launcher'),
+    message: String(entry?.message || ''),
+    timestamp: entry?.timestamp || new Date().toISOString(),
+    progress: entry?.progress
+  };
+  if (!normalized.message) return;
+  terminalEntries.push(normalized);
+  if (terminalEntries.length > 2500) terminalEntries.splice(0, terminalEntries.length - 2500);
+  renderTerminal();
+}
+
+function renderTerminal() {
+  const box = document.getElementById('terminal-log');
+  if (!box) return;
+  const query = terminalSearch.trim().toLowerCase();
+  const filtered = terminalEntries.filter(e => {
+    const typeOk = terminalFilter === 'all' || e.level === terminalFilter;
+    const searchOk = !query || `${e.source} ${e.message}`.toLowerCase().includes(query);
+    return typeOk && searchOk;
+  });
+  box.innerHTML = filtered.map(e => {
+    const time = new Date(e.timestamp).toLocaleTimeString();
+    const progress = typeof e.progress === 'number' ? ` <span style="color:#64748b">(${e.progress}%)</span>` : '';
+    return `<div class="terminal-line ${e.level}"><span class="terminal-time">[${escapeHtml(time)}]</span><span class="terminal-source">[${escapeHtml(e.source)}]</span>${escapeHtml(e.message)}${progress}</div>`;
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+  const left = document.getElementById('terminal-status-left');
+  const right = document.getElementById('terminal-status-right');
+  if (left) left.textContent = terminalEntries.length ? `Live Log · ${terminalEntries[terminalEntries.length - 1].source}` : 'Esperando actividad...';
+  if (right) right.textContent = `${filtered.length} líneas`;
+}
+
+async function openInstanceDetails(instancePath) {
+  detailInstancePath = instancePath;
+  try {
+    const instances = await window.launcherAPI.getInstances();
+    const instance = instances.find(i => i.path === instancePath);
+    const details = await window.launcherAPI.getInstanceDetails(instancePath);
+    const cfg = await window.launcherAPI.getInstanceConfig(instancePath);
+    const mods = await window.launcherAPI.listInstanceMods(instancePath);
+    document.getElementById('instance-details-title').textContent = instance?.name || 'Instancia';
+    document.getElementById('instance-details-subtitle').textContent = instancePath;
+    document.getElementById('detail-version').textContent = instance?.version || details?.version || '—';
+    document.getElementById('detail-loader').textContent = instance?.loader || 'Vanilla';
+    document.getElementById('detail-mod-count').textContent = mods.length;
+    const ramMb = Math.max(1024, Math.min(32768, Number(cfg.ram || 4096)));
+    document.getElementById('detail-ram').textContent = `${(ramMb / 1024).toFixed(1)} GB`;
+    const ramRange = document.getElementById('detail-ram-range');
+    const ramInput = document.getElementById('detail-ram-input');
+    const ramValue = document.getElementById('detail-ram-control-value');
+    if (ramRange) ramRange.value = ramMb;
+    if (ramInput) ramInput.value = ramMb;
+    if (ramValue) ramValue.textContent = `${(ramMb / 1024).toFixed(1)} GB`;
+    renderInstanceDetailMods(mods);
+    document.getElementById('modal-instancia-detalles').classList.add('show');
+  } catch (e) {
+    mostrarMensaje('❌ No se pudieron cargar los detalles: ' + e.message);
+  }
+}
+
+function closeInstanceDetails() {
+  document.getElementById('modal-instancia-detalles')?.classList.remove('show');
+  detailInstancePath = null;
+}
+
+function renderInstanceDetailMods(mods) {
+  const box = document.getElementById('instance-detail-mods');
+  if (!box) return;
+  if (!mods.length) {
+    box.innerHTML = `<div class="feature-card" style="text-align:center;padding:24px;"><div style="font-size:32px;margin-bottom:8px;">🧩</div><h3>No hay mods instalados</h3><p class="muted" style="margin-top:6px;">Puedes instalarlos desde Explorar.</p></div>`;
+    return;
+  }
+  box.innerHTML = mods.map(mod => {
+    const label = escapeHtml(mod.title || mod.name || mod.activeFile || mod.file || 'Mod');
+    const file = escapeHtml(mod.file || mod.activeFile || '');
+    const meta = [mod.version || mod.gameVersion || '', mod.loader || '', mod.disabled ? 'Desactivado' : 'Activo'].filter(Boolean).join(' · ');
+    return `<div class="mod-row ${mod.disabled ? 'disabled' : ''}">
+      <div class="mod-row-main"><div class="mod-row-name" title="${file}">${label}</div><div class="mod-row-meta">${escapeHtml(meta || file)}</div></div>
+      <label class="toggle-switch" title="Activar/desactivar mod"><input type="checkbox" data-mod-file="${file}" ${mod.disabled ? '' : 'checked'}><span class="toggle-pill"></span><span>${mod.disabled ? 'Desactivado' : 'Activo'}</span></label>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('input[data-mod-file]').forEach(input => input.addEventListener('change', async function() {
+    if (!detailInstancePath) return;
+    const previous = !this.checked;
+    try {
+      const r = await window.launcherAPI.toggleInstanceMod(detailInstancePath, this.dataset.modFile, this.checked);
+      if (!r.success) throw new Error(r.error || 'No se pudo cambiar el estado');
+      terminalAppend({ level:'info', source:'mod-manager', message:`${this.checked ? 'Activado' : 'Desactivado'}: ${this.dataset.modFile}` });
+      await openInstanceDetails(detailInstancePath);
+    } catch (e) {
+      this.checked = previous;
+      mostrarMensaje('❌ ' + e.message);
+    }
+  }));
+}
+
+async function checkDetailUpdates() {
+  if (!detailInstancePath) return;
+  terminalOpen();
+  terminalAppend({ level:'info', source:'mod-manager', message:'Buscando actualizaciones de mods...' });
+  try {
+    const result = await window.launcherAPI.checkModUpdates(detailInstancePath);
+    const updates = Array.isArray(result) ? result : (result?.updates || []);
+    const count = updates.length;
+    terminalAppend({ level:'info', source:'mod-manager', message:`Comprobación terminada: ${count} actualización(es) disponible(s).` });
+    if (!count) return mostrarMensaje('✅ Todos los mods están actualizados');
+    const names = updates.slice(0,5).map(u => u.title || u.file || u.activeFile || 'Mod').join(', ');
+    const shouldUpdate = confirm(`Se encontraron ${count} actualización(es).\n\n${names}${count > 5 ? '…' : ''}\n\n¿Actualizar ahora? MineSteam creará copias de seguridad de los archivos sustituidos.`);
+    if (!shouldUpdate) return mostrarMensaje(`🔄 ${count} actualización(es) disponible(s)`);
+    const updated = await window.launcherAPI.updateInstanceMods(detailInstancePath);
+    if (updated?.success) {
+      mostrarMensaje(`✅ ${updated.updated || count} mod(s) actualizado(s)`);
+      terminalAppend({ level:'info', source:'mod-manager', message:`Actualización completada. Backups: ${updated.backupsCreated || 0}.` });
+      await openInstanceDetails(detailInstancePath);
+    } else {
+      throw new Error(updated?.error || `${updated?.failed || 0} actualización(es) fallaron`);
+    }
+  } catch (e) { terminalAppend({level:'error',source:'mod-manager',message:e.message}); mostrarMensaje('❌ ' + e.message); }
+}
+
+document.getElementById('detail-check-modpack')?.addEventListener('click', checkSmartModpack);
+
+async function exportCurrentInstance() {
+  if (!detailInstancePath) return;
+  terminalOpen();
+  terminalAppend({ level:'info', source:'export', message:'Preparando exportación de la instancia...' });
+  try {
+    const r = await window.launcherAPI.exportInstance(detailInstancePath);
+    if (!r.success) throw new Error(r.error || 'No se pudo exportar');
+    terminalAppend({ level:'info', source:'export', message:`Instancia exportada: ${r.path}` });
+    mostrarMensaje('✅ Instancia exportada correctamente');
+  } catch (e) { terminalAppend({level:'error',source:'export',message:e.message}); mostrarMensaje('❌ ' + e.message); }
+}
+
+async function backupSelectedWorld() {
+  const select = document.getElementById('content-instance-select');
+  if (!select?.value || getContentType() !== 'worlds') return;
+  const worlds = await window.launcherAPI.listContent(select.value, 'worlds');
+  if (!worlds.length) { mostrarMensaje('⚠️ No hay mundos para respaldar'); return; }
+  const name = prompt('Nombre exacto del mundo a respaldar:', worlds[0].name);
+  if (!name) return;
+  const r = await window.launcherAPI.createWorldBackup(select.value, name);
+  if (r?.success) mostrarMensaje('✅ Copia de seguridad creada'); else mostrarMensaje('❌ ' + (r?.error || 'No se pudo crear la copia'));
+}
+
+async function loadAccounts() {
+  const box = document.getElementById('accounts-list');
+  if (!box || !window.launcherAPI.getAccounts) return;
+  try {
+    const [accounts, active] = await Promise.all([window.launcherAPI.getAccounts(), window.launcherAPI.getCurrentUser()]);
+    if (!accounts.length) { box.innerHTML = '<div class="feature-card"><p class="muted">No hay cuentas locales guardadas.</p></div>'; return; }
+    box.innerHTML = accounts.map(a => `<div class="tool-card"><div><strong>${escapeHtml(a.name)}</strong><p>${a.id === active?.id ? 'Cuenta activa' : 'Cuenta offline'}</p></div><div style="display:flex;gap:6px;"><button class="btn-secondary account-select-btn" data-id="${escapeAttr(a.id)}" ${a.id===active?.id?'disabled':''}>${a.id===active?.id?'✓ Activa':'Usar'}</button><button class="btn-delete account-delete-btn" data-id="${escapeAttr(a.id)}">Eliminar</button></div></div>`).join('');
+    box.querySelectorAll('.account-select-btn').forEach(b=>b.addEventListener('click',async()=>{const r=await window.launcherAPI.selectAccount(b.dataset.id); if(r?.error) return mostrarMensaje('❌ '+r.error); localStorage.setItem('offlineUser', r.name); updateProfileUI(r); loadAccounts(); mostrarMensaje(`✅ Cuenta activa: ${r.name}`); }));
+    box.querySelectorAll('.account-delete-btn').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('¿Eliminar esta cuenta local?')) return; const r=await window.launcherAPI.deleteAccount(b.dataset.id); if(r?.error) return mostrarMensaje('❌ '+r.error); const active=await window.launcherAPI.getCurrentUser(); if(active) localStorage.setItem('offlineUser',active.name); else localStorage.removeItem('offlineUser'); updateProfileUI(active); loadAccounts(); }));
+  } catch (e) { box.innerHTML = `<div class="feature-card"><p class="muted">${escapeHtml(e.message)}</p></div>`; }
+}
+
+async function setupCrashAnalyzer() {
+  const select=document.getElementById('crash-instance-select'); if(!select) return;
+  const instances=await window.launcherAPI.getInstances();
+  select.innerHTML='<option value="">Selecciona una instancia</option>'+instances.map(i=>`<option value="${escapeAttr(i.path)}">${escapeHtml(i.name)} — ${escapeHtml(i.version||'?')}</option>`).join('');
+  document.getElementById('crash-analyze-btn')?.addEventListener('click',async()=>{
+    if(!select.value) return mostrarMensaje('⚠️ Selecciona una instancia');
+    const box=document.getElementById('crash-analysis-result'); box.style.display='block'; box.innerHTML='<p class="muted">Analizando logs...</p>';
+    const r=await window.launcherAPI.analyzeCrash(select.value);
+    if(r?.error){box.innerHTML=`<p style="color:var(--red)">${escapeHtml(r.error)}</p>`;return;}
+    const causes=(r.causes||[]).map(c=>`<li>${escapeHtml(c)}</li>`).join('');
+    box.innerHTML=`<strong>${escapeHtml(r.likelyCause||'Sin causa determinada')}</strong><p class="muted" style="margin-top:6px;">Archivos analizados: ${r.analyzedFiles?.length||0}</p>${causes?`<ul style="margin:8px 0 0 18px;">${causes}</ul>`:''}`;
+  });
+}
+
+async function setupOptimizer() {
+  const select=document.getElementById('optimizer-instance-select'); if(!select) return;
+  const instances=await window.launcherAPI.getInstances();
+  select.innerHTML='<option value="">Selecciona una instancia</option>'+instances.map(i=>`<option value="${escapeAttr(i.path)}">${escapeHtml(i.name)} — ${escapeHtml(i.version||'?')}</option>`).join('');
+  const render=async()=>{const p=select.value; if(!p) return; const r=await window.launcherAPI.optimizerRecommendations(p); const box=document.getElementById('optimizer-status'); box.style.display='block'; box.innerHTML=`<strong>${escapeHtml(r.profile)}</strong><p class="muted" style="margin-top:6px;">RAM del sistema: ${r.totalRamGb} GB · Distancia de render: ${r.settings.renderDistance} · Simulación: ${r.settings.simulationDistance}</p>`;};
+  document.getElementById('optimizer-analyze-btn')?.addEventListener('click',render);
+  document.getElementById('optimizer-apply-btn')?.addEventListener('click',async()=>{if(!select.value)return mostrarMensaje('⚠️ Selecciona una instancia'); const r=await window.launcherAPI.optimizerApply(select.value,{}); if(r?.error)return mostrarMensaje('❌ '+r.error); await render(); mostrarMensaje('✅ Optimización aplicada. Se utilizará al abrir Minecraft.');});
+}
+
+function setupAppUpdater(){
+  const status=document.getElementById('app-update-status');
+  const btn=document.getElementById('app-update-check-btn');
+  let updateAvailable=false;
+  btn?.addEventListener('click',async()=>{
+    if(updateAvailable){ if(status) status.textContent='Descargando actualización...'; const r=await window.launcherAPI.downloadAppUpdate(); if(r?.error&&status)status.textContent='No se pudo descargar: '+r.error; return; }
+    if(status) status.textContent='Buscando actualizaciones...'; const r=await window.launcherAPI.checkAppUpdate(); if(r?.error && status) status.textContent='No se pudo comprobar: '+r.error;
+  });
+  window.launcherAPI.onUpdateStatus?.(payload=>{if(status)status.textContent=payload.message||payload.status;});
+  window.launcherAPI.onUpdateAvailable?.(info=>{updateAvailable=true; if(btn)btn.innerHTML='<i class="fa-solid fa-download"></i> Descargar actualización'; if(status)status.innerHTML=`Nueva versión <strong>${escapeHtml(info.version)}</strong> disponible.`;});
+  window.launcherAPI.onUpdateNotAvailable?.(()=>{if(status)status.textContent='MineSteam está actualizado.';});
+  window.launcherAPI.onUpdateDownloaded?.(info=>{if(status)status.textContent=`Actualización ${info?.version||''} descargada. Se instalará al reiniciar.`;});
+}
+
+async function openInstanceBackupsModal() {
+  if (!detailInstancePath) return;
+  const modal = document.getElementById('modal-instance-backups');
+  const box = document.getElementById('instance-backups-list');
+  if (!modal || !box) return;
+  modal.classList.add('show');
+  const backups = await window.launcherAPI.listInstanceBackups(detailInstancePath);
+  box.innerHTML = backups.length ? backups.map(b => `<div class="tool-card"><div><strong>${escapeHtml(b.name)}</strong><p>${(b.size/1024/1024).toFixed(1)} MB · ${new Date(b.modifiedAt).toLocaleString()}</p></div><button class="btn-secondary restore-instance-backup" data-path="${escapeAttr(b.path)}">Restaurar</button></div>`).join('') : '<div class="feature-card"><p class="muted">No hay backups de esta instancia.</p></div>';
+  box.querySelectorAll('.restore-instance-backup').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('Restaurar este backup reemplazará el contenido actual de la instancia. ¿Continuar?')) return;
+    btn.disabled = true;
+    const r = await window.launcherAPI.restoreInstanceBackup(detailInstancePath, btn.dataset.path);
+    btn.disabled = false;
+    if (r?.error) return mostrarMensaje('❌ ' + r.error);
+    modal.classList.remove('show');
+    mostrarMensaje('✅ Backup restaurado.');
+    displayInstances();
+  }));
+}
+
+async function createCurrentInstanceBackup() {
+  if (!detailInstancePath) return;
+  terminalAppend({level:'info',source:'backup',message:'Creando backup completo de la instancia...'});
+  const r = await window.launcherAPI.createInstanceBackup(detailInstancePath, 'manual');
+  if (r?.error) return mostrarMensaje('❌ ' + r.error);
+  terminalAppend({level:'info',source:'backup',message:`Backup creado: ${r.name}`});
+  mostrarMensaje('✅ Backup completo creado.');
+  openInstanceBackupsModal();
+}
+
+function setupMineSteam240() {
+  document.getElementById('instance-details-close')?.addEventListener('click', closeInstanceDetails);
+  const ramRange = document.getElementById('detail-ram-range');
+  const ramInput = document.getElementById('detail-ram-input');
+  const ramValue = document.getElementById('detail-ram-control-value');
+  const syncRamControls = value => {
+    const clamped = Math.max(1024, Math.min(32768, Number(value) || 4096));
+    if (ramRange) ramRange.value = clamped;
+    if (ramInput) ramInput.value = clamped;
+    if (ramValue) ramValue.textContent = `${(clamped / 1024).toFixed(1)} GB`;
+  };
