@@ -28,11 +28,4 @@ async function remove(instancePath, fileName) {
   return legacy.removeInstanceMod(instancePath, fileName);
 }
 
-module.exports = {
-  normalizeLoader: modrinth.normalizeLoader,
-  search,
-  get,
-  install,
-  list,
-  remove
-};
+module.exports = { normalizeLoader: modrinth.normalizeLoader, search, get, install, list, remove };

@@ -30,11 +30,7 @@ async function getDetails(instancePath) {
   }
 
   const stat = await fs.stat(minecraftDir);
-  return {
-    size: await getDirectorySize(minecraftDir),
-    lastModified: stat.mtime,
-    javaVersion
-  };
+  return { size: await getDirectorySize(minecraftDir), lastModified: stat.mtime, javaVersion };
 }
 
 module.exports = { getDirectorySize, getDetails };

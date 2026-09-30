@@ -2,12 +2,7 @@ const fabric = require('./fabric');
 const forge = require('./forge');
 const neoforge = require('./neoforge');
 
-const LOADERS = Object.freeze({
-  vanilla: null,
-  fabric,
-  forge,
-  neoforge
-});
+const LOADERS = Object.freeze({ vanilla: null, fabric, forge, neoforge });
 
 function normalizeLoader(value) {
   const loader = String(value || 'vanilla').trim().toLowerCase();
@@ -61,10 +56,4 @@ async function install(loader, minecraftVersion, instanceMinecraftDir, preferred
   );
 }
 
-module.exports = {
-  LOADERS,
-  normalizeLoader,
-  isSupported,
-  install,
-  getAvailableVersions
-};
+module.exports = { LOADERS, normalizeLoader, isSupported, install, getAvailableVersions };

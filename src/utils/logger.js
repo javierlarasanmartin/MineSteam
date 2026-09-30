@@ -21,10 +21,7 @@ const logger = winston.createLogger({
       maxFiles: 5
     }),
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple())
     })
   ]
 });

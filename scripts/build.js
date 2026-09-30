@@ -3,10 +3,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const readline = require('readline');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 const PACKAGE = require('../package.json');
 const APP_NAME = PACKAGE.build.productName || 'Mi Launcher';
@@ -47,10 +44,10 @@ async function build() {
       execSync('npm run build', { stdio: 'inherit' });
       break;
     case '6':
-      console.log('👋 ¡Hasta luego!');
+      console.log('¡Hasta luego!');
       process.exit(0);
     default:
-      console.log('❌ Opción inválida');
+      console.log('Opción inválida');
   }
 }
 

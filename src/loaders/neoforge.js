@@ -10,11 +10,7 @@ function ensureLauncherProfile(instanceMinecraftDir, minecraftVersion) {
 
   fs.writeJsonSync(profilePath, {
     profiles: {
-      minesteam: {
-        name: 'MineSteam',
-        type: 'custom',
-        lastVersionId: String(minecraftVersion)
-      }
+      minesteam: { name: 'MineSteam', type: 'custom', lastVersionId: String(minecraftVersion) }
     },
     settings: {},
     version: 3
@@ -38,7 +34,7 @@ async function getAvailableVersions(minecraftVersion) {
   try {
     const response = await axios.get(`${MAVEN_ROOT}/maven-metadata.xml`, {
       timeout: 20000,
-      headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/xml,text/xml,*/*' }
+      headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept': 'application/xml,text/xml,*/*' }
     });
     const xml = String(response.data || '');
     const versions = [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map(m => m[1]);
@@ -48,7 +44,7 @@ async function getAvailableVersions(minecraftVersion) {
     try {
       const index = await axios.get(`${MAVEN_ROOT}/`, {
         timeout: 20000,
-        headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'text/html,*/*' }
+        headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept': 'text/html,*/*' }
       });
       const versions = [...String(index.data || '').matchAll(/href=[\"']([^/\"']+\/)[\"']/gi)]
         .map(m => m[1].replace(/\/$/, ''))
@@ -128,11 +124,7 @@ async function install(minecraftVersion, instanceMinecraftDir, preferredVersion,
       const proc = spawn(javaExecutable, [
         '-jar', installerPath,
         '--installClient', instanceMinecraftDir
-      ], {
-        cwd: instanceMinecraftDir,
-        stdio: 'inherit',
-        shell: false
-      });
+      ], { cwd: instanceMinecraftDir, stdio: 'inherit', shell: false });
 
       proc.on('error', reject);
       proc.on('close', code => {
@@ -153,11 +145,7 @@ async function install(minecraftVersion, instanceMinecraftDir, preferredVersion,
     const libraries = await services.downloadLoaderLibraries(installed.data, instanceMinecraftDir);
 
     logger.info(`NeoForge ${neoForgeVersion} preparado para Minecraft ${minecraftVersion}`);
-    return {
-      profile: installed.data,
-      libraries,
-      version: neoForgeVersion
-    };
+    return { profile: installed.data, libraries, version: neoForgeVersion };
   } catch (error) {
     logger.error(`Error instalando NeoForge: ${error.message}`);
     throw new Error(`Error instalando NeoForge ${minecraftVersion}: ${error.message}`);

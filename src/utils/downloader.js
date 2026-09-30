@@ -19,7 +19,7 @@ async function downloadFile(url, outputPath, progressCallback) {
       maxRedirects: 5,
       httpsAgent,
       httpAgent,
-      headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept-Encoding': 'gzip, deflate' }
+      headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept-Encoding': 'gzip, deflate' }
     });
     
     const totalLength = parseInt(response.headers['content-length'] || '0', 10);
@@ -49,6 +49,4 @@ async function downloadFile(url, outputPath, progressCallback) {
   }
 }
 
-module.exports = {
-  downloadFile
-};
+module.exports = { downloadFile };

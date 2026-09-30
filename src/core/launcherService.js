@@ -32,7 +32,12 @@ const METHODS = [
   'clearCache',
   'getCacheSize',
   'downloadJava',
-  'getRequiredJavaVersion'
+  'getRequiredJavaVersion',
+  'getLoaderVersionList',
+  'toggleInstanceMod',
+  'checkInstanceModUpdates',
+  'updateInstanceMods',
+  'checkModpackUpdate'
 ];
 
 for (const method of METHODS) {

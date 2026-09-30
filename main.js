@@ -6,7 +6,6 @@ const crypto = require('crypto');
 const launcher = require('./src/core/launcherService');
 const instanceService = require('./src/core/instanceService');
 const { assertInstancePath, assertReadableFile } = require('./src/core/security');
-const store = require('./src/utils/secureStore');
 const logger = require('./src/utils/logger');
 const profileManager = require('./src/managers/profileManager');
 const contentManager = require('./src/managers/contentManager');
@@ -17,10 +16,10 @@ const accountManager = require('./src/managers/accountManager');
 const optimizerManager = require('./src/managers/optimizerManager');
 const diagnosticManager = require('./src/managers/diagnosticManager');
 const updater = require('./src/utils/updater');
+const javaManager = require('./src/utils/javaManager');
+const { APP_ID, WINDOW } = require('./src/core/appConfig');
 
-// =============================================
-// 1. SINGLE INSTANCE LOCK (Prevenir múltiples instancias)
-// =============================================
+// Single instance lock (Prevenir múltiples instancias)
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
@@ -35,16 +34,12 @@ app.on('second-instance', () => {
   }
 });
 
-// =============================================
-// 2. CONFIGURACIÓN DE APP (Windows)
-// =============================================
+// Configuración de app (Windows)
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.javierlarasanmartin.minesteam');
+  app.setAppUserModelId(APP_ID);
 }
 
-// =============================================
-// 3. GLOBAL ERROR HANDLERS
-// =============================================
+// Global error handlers
 process.on('uncaughtException', (error) => {
   logger.error(`Uncaught Exception: ${error.stack}`);
   dialog.showErrorBox('Error Inesperado', 
@@ -53,15 +48,11 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error(`Unhandled Rejection: ${reason}`);
-  dialog.showErrorBox('Error de Promesa', 
-    `Ha ocurrido un error in una promesa:\n\n${reason}`
-  );
+  // Solo se registra: una promesa rechazada (p. ej. fallo de red) no justifica un diálogo bloqueante.
+  logger.error(`Unhandled Rejection: ${reason && reason.stack ? reason.stack : reason}`);
 });
 
-// =============================================
-// 4. VARIABLES GLOBALES (Seguras)
-// =============================================
+// Variables globales
 let mainWindow = null;
 let ipcRegistered = false;
 
@@ -77,20 +68,18 @@ function sendToRenderer(channel, data) {
   }
 }
 
-// =============================================
-// 5. CREACIÓN DE VENTANA (Mejorada)
-// =============================================
+// Creación de ventana
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    minWidth: 900,
-    minHeight: 600,
+    width: WINDOW.width,
+    height: WINDOW.height,
+    minWidth: WINDOW.minWidth,
+    minHeight: WINDOW.minHeight,
     frame: true,
     webPreferences: {
       nodeIntegration: false,           // ✅ Seguridad
       contextIsolation: true,           // ✅ Seguridad
-      sandbox: true,                    // ✅ SEGURIDAD CRÍTICA (cambiado de false)
+      sandbox: false,                   // Se mantiene temporalmente mientras se completa la compatibilidad del preload
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'assets', 'icon.svg'),
@@ -105,9 +94,7 @@ function createWindow() {
     mainWindow.show();
   });
 
-  // =============================================
-  // 6. SEGURIDAD WEB
-  // =============================================
+  // Seguridad web
   
   // Bloquear navegación a sitios externos
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -128,23 +115,17 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // =============================================
-  // 7. DEV TOOLS (Solo en desarrollo)
-  // =============================================
+  // Dev tools (Solo en desarrollo)
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
 
-  // =============================================
-  // 8. MANEJO DE CIERRE
-  // =============================================
+  // Manejo de cierre
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  // =============================================
-  // 9. CONFIGURAR UPDATER
-  // =============================================
+  // Configurar updater
   try {
     updater.setUpdater(mainWindow);
   } catch (error) {
@@ -152,9 +133,9 @@ function createWindow() {
   }
 }
 
-// =============================================
-// 10. IPC REGISTER (Mejorado)
-// =============================================
+// IPC register
+const JAVA_VERSIONS = [8, 16, 17, 21, 25];
+
 function register(channel, handler) {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
@@ -167,9 +148,7 @@ function register(channel, handler) {
   });
 }
 
-// =============================================
-// 11. HANDLER DE LAUNCH MINECRAFT (MEJORADO)
-// =============================================
+// Handler de launch Minecraft
 async function handleLaunchMinecraft(_event, data) {
   if (!data || typeof data !== 'object') {
     throw new Error('Datos de lanzamiento inválidos');
@@ -177,7 +156,7 @@ async function handleLaunchMinecraft(_event, data) {
 
   const safePath = assertInstancePath(data.instancePath);
   const saved = profileManager.getInstanceConfig(safePath);
-  
+
   const launchData = {
     ...data,
     instancePath: safePath,
@@ -186,41 +165,26 @@ async function handleLaunchMinecraft(_event, data) {
     jvmArgs: data.jvmArgs ?? saved?.jvmArgs ?? ''
   };
 
-  try {
-    // Ejecutar lanzamiento de forma asíncrona pero con await
-    const result = await launcher.launchMinecraft(launchData);
-    
-    sendToRenderer('launch-state', {
-      instancePath: safePath,
-      state: 'finished',
-      result
+  // El lanzamiento dura hasta que se cierra el juego: no se espera aquí.
+  // El resultado llega al renderer por el evento 'launch-state'.
+  launcher.launchMinecraft(launchData).then(result => {
+      sendToRenderer('launch-state', { instancePath: safePath, state: 'finished', result });
+    })
+    .catch(error => {
+      logger.error(`Lanzamiento ${safePath} falló: ${error.stack || error.message}`);
+      sendToRenderer('launch-state', { instancePath: safePath, state: 'error', error: error.message });
+      sendToRenderer('terminal-log', {
+        level: 'error',
+        source: 'launcher',
+        message: `Error al lanzar Minecraft: ${error.message}`,
+        timestamp: new Date().toISOString()
+      });
     });
 
-    return { success: true, started: true, instancePath: safePath };
-    
-  } catch (error) {
-    logger.error(`Lanzamiento ${safePath} falló: ${error.stack || error.message}`);
-    
-    sendToRenderer('launch-state', {
-      instancePath: safePath,
-      state: 'error',
-      error: error.message
-    });
-    
-    sendToRenderer('terminal-log', {
-      level: 'error',
-      source: 'launcher',
-      message: `Error al lanzar Minecraft: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-
-    throw error; // Re-lanzar para que register lo capture
-  }
+  return { success: true, started: true, instancePath: safePath };
 }
 
-// =============================================
-// 12. HANDLER DE CUENTAS (MEJORADO)
-// =============================================
+// Handler de cuentas
 async function handleLoginOffline(_event, username) {
   const activeProfile = profileManager.getActiveProfile();
   if (!activeProfile || !activeProfile.id) {
@@ -248,14 +212,12 @@ async function handleAccountsList() {
   return accountManager.getAccountsForProfile(activeProfile.id);
 }
 
-// =============================================
-// 13. SETUP IPC HANDLERS (Completo)
-// =============================================
+// Setup IPC handlers
 function setupIpcHandlers() {
   if (ipcRegistered) return;
   ipcRegistered = true;
 
-  // === INSTANCIAS ===
+  // Instancias
   register('get-instances', () => launcher.getInstances());
   register('get-instance-details', (_event, instancePath) =>
     instanceService.getDetails(assertInstancePath(instancePath))
@@ -280,23 +242,19 @@ function setupIpcHandlers() {
   });
   register('crear-instancia', (_event, data) => launcher.crearInstanciaPersonalizada(data));
 
-  // === LANZAMIENTO ===
+  // Lanzamiento
   register('launch-minecraft', handleLaunchMinecraft);
 
-  // === MODRINTH ===
+  // Modrinth
   register('search-modrinth', (_event, query, limit, filters, offset) =>
     launcher.searchModrinth(query, limit, filters, offset)
   );
-  register('get-modrinth-pack', (_event, projectId) =>
-    launcher.getModrinthModpack(projectId)
-  );
+  register('get-modrinth-pack', (_event, projectId) => launcher.getModrinthModpack(projectId));
   register('install-modpack', (_event, data) => launcher.installModpack(data));
   register('search-modrinth-mods', (_event, query, limit, filters) =>
     launcher.searchModrinthMods(query, limit, filters)
   );
-  register('get-modrinth-mod', (_event, projectId) =>
-    launcher.getModrinthMod(projectId)
-  );
+  register('get-modrinth-mod', (_event, projectId) => launcher.getModrinthMod(projectId));
   register('install-modrinth-mod', (_event, data) => {
     if (!data || typeof data !== 'object') throw new Error('Datos de instalación de mod inválidos');
     return launcher.installModrinthMod({
@@ -305,7 +263,7 @@ function setupIpcHandlers() {
     });
   });
 
-  // === MODS ===
+  // Mods
   register('list-instance-mods', (_event, instancePath) =>
     launcher.listInstanceMods(assertInstancePath(instancePath))
   );
@@ -322,7 +280,7 @@ function setupIpcHandlers() {
     launcher.removeInstanceMod(assertInstancePath(instancePath), fileName)
   );
 
-  // === IMPORTACIÓN ===
+  // Importación
   register('import-curseforge-zip', (_event, zipPath, instanceName) =>
     launcher.importCurseForgeZip(assertReadableFile(zipPath, ['.zip']), instanceName)
   );
@@ -330,7 +288,7 @@ function setupIpcHandlers() {
     launcher.importZipFile(assertReadableFile(zipPath, ['.zip']), instanceName)
   );
 
-  // === PERFILES ===
+  // Perfiles
   register('profiles-list', () => profileManager.getProfiles());
   register('profile-active', () => profileManager.getActiveProfile());
   register('profile-create', (_event, data) => profileManager.createProfile(data));
@@ -339,7 +297,7 @@ function setupIpcHandlers() {
   register('profile-select', (_event, id) => profileManager.setActiveProfile(id));
   register('profile-stats', (_event, id) => profileManager.getProfileStats(id));
 
-  // === CONFIGURACIÓN DE INSTANCIA ===
+  // Configuración de instancia
   register('instance-config-get', (_event, instancePath) =>
     profileManager.getInstanceConfig(assertInstancePath(instancePath))
   );
@@ -347,7 +305,7 @@ function setupIpcHandlers() {
     profileManager.setInstanceConfig(assertInstancePath(instancePath), data)
   );
 
-  // === SERVIDORES ===
+  // Servidores
   register('servers-list', () => profileManager.getServers());
   register('server-add', (_event, data) => profileManager.addServer(data));
   register('server-update', (_event, id, data) => profileManager.updateServer(id, data));
@@ -355,7 +313,7 @@ function setupIpcHandlers() {
   register('server-ping', (_event, data) => profileManager.pingServer(data));
   register('modpack-check-update', (_event, instancePath) => launcher.checkModpackUpdate(assertInstancePath(instancePath)));
 
-  // === CONTENIDO ===
+  // Contenido
   register('content-list', (_event, instancePath, type) =>
     contentManager.list(assertInstancePath(instancePath), type)
   );
@@ -391,7 +349,7 @@ function setupIpcHandlers() {
     return { success: true, path: folder };
   });
 
-  // === HERRAMIENTAS DE INSTANCIA ===
+  // Herramientas de instancia
   register('world-backups-list', (_event, instancePath) =>
     instanceTools.listWorldBackups(assertInstancePath(instancePath))
   );
@@ -436,7 +394,7 @@ function setupIpcHandlers() {
     return { success: true, path: folder };
   });
 
-  // === VERSIONES ===
+  // Versiones
   register('get-latest-version', () => launcher.getLatestMinecraftVersion());
   register('get-version-list', () => launcher.getVersionList());
   register('get-release-version-list', () => launcher.getReleaseVersionList());
@@ -444,7 +402,7 @@ function setupIpcHandlers() {
     launcher.getLoaderVersionList(loader, minecraftVersion)
   );
 
-  // === CUENTAS (MEJORADO) ===
+  // Cuentas
   register('login-offline', handleLoginOffline);
   register('logout-offline', () => accountManager.logout());
   register('get-current-user', handleGetCurrentUser);
@@ -464,27 +422,24 @@ function setupIpcHandlers() {
     return accountManager.deleteAccount(id, activeProfile.id);
   });
 
-  // === JAVA ===
+  // Java
   register('java-status', async () => {
-    const jm = require('./src/utils/javaManager');
-    const versions = [8, 16, 17, 21, 25];
     return {
-      system: jm.detectSystemJavaVersion(),
-      installed: versions.filter(v => !!jm.getLocalJavaPath(v)),
-      requiredSupported: versions
+      system: javaManager.detectSystemJavaVersion(),
+      installed: JAVA_VERSIONS.filter(v => !!javaManager.getLocalJavaPath(v)),
+      requiredSupported: JAVA_VERSIONS
     };
   });
   register('java-install', async (_event, version) => {
     const numericVersion = Number(version);
-    if (![8, 17, 21, 25].includes(numericVersion)) {
+    if (!JAVA_VERSIONS.includes(numericVersion)) {
       throw new Error('Versión de Java no soportada');
     }
-    const jm = require('./src/utils/javaManager');
-    const javaPath = await jm.downloadJava(numericVersion);
+    const javaPath = await javaManager.downloadJava(numericVersion);
     return { success: true, version: numericVersion, path: javaPath };
   });
 
-  // === DIAGNÓSTICO Y OPTIMIZACIÓN ===
+  // Diagnóstico y optimización
   register('analyze-crash', (_event, instancePath) =>
     diagnosticManager.analyzeCrash(assertInstancePath(instancePath))
   );
@@ -498,14 +453,12 @@ function setupIpcHandlers() {
     optimizerManager.apply(assertInstancePath(instancePath), settings || {})
   );
 
-  // === ACTUALIZACIONES ===
+  // Actualizaciones
   register('check-app-update', async () => {
     try {
-      const result = await updater.autoUpdater.checkForUpdates();
-      if (result && result.updateInfo) {
-        sendToRenderer('update-available', result.updateInfo);
-      }
-      return result;
+      // Los eventos update-available / update-not-available los emite updater.js.
+      const result = await updater.checkForUpdates();
+      return { success: true, version: result?.updateInfo?.version || null };
     } catch (error) {
       logger.error(`Error checking updates: ${error.message}`);
       return { success: false, error: error.message };
@@ -521,18 +474,25 @@ function setupIpcHandlers() {
     }
   });
 
-  // === CACHÉ ===
+  // Información de la app
+  register('get-app-info', () => ({
+    name: app.getName(),
+    version: app.getVersion(),
+    appId: APP_ID,
+    platform: process.platform,
+    arch: process.arch
+  }));
+
+  // Caché
   register('clear-cache', () => launcher.clearCache());
   register('get-cache-size', () => launcher.getCacheSize());
 }
 
-// =============================================
-// 14. APP LIFE CYCLE
-// =============================================
+// App life cycle
 app.whenReady().then(() => {
   setupIpcHandlers();
   createWindow();
-  logger.info('MineSteam iniciado (v2.4.1)');
+  logger.info(`MineSteam iniciado (v${app.getVersion()})`);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

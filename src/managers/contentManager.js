@@ -148,13 +148,4 @@ async function openFolder(instancePath, type) {
   return directory;
 }
 
-module.exports = {
-  TYPES,
-  list,
-  remove,
-  rename,
-  toggle,
-  installFile,
-  importWorld,
-  openFolder
-};
+module.exports = { TYPES, list, remove, rename, toggle, installFile, importWorld, openFolder };

@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const USER_AGENT = 'MineSteam/2.4.1';
+const USER_AGENT = 'MineSteam/2.4.2';
 
 function normalizeLoader(loader) {
     const value = String(loader || '').trim().toLowerCase();
@@ -35,9 +35,7 @@ async function searchMods(query, limit = 30, filters = {}) {
         headers: { 'User-Agent': USER_AGENT }
     });
 
-    return (response.data?.hits || [])
-        .filter(hit => hit.project_type === 'mod')
-        .map(hit => ({
+    return (response.data?.hits || []).filter(hit => hit.project_type === 'mod').map(hit => ({
             id: hit.project_id,
             title: hit.title,
             slug: hit.slug,
@@ -105,9 +103,4 @@ async function resolveCompatibleVersion(projectId, versionId, gameVersion, loade
     return compatible[0] || null;
 }
 
-module.exports = {
-    normalizeLoader,
-    searchMods,
-    getMod,
-    resolveCompatibleVersion
-};
+module.exports = { normalizeLoader, searchMods, getMod, resolveCompatibleVersion };

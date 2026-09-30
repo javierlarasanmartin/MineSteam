@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
 const MODRINTH_CDN = 'https://cdn.modrinth.com';
-const USER_AGENT = 'MineSteam/2.4.1';
+const USER_AGENT = 'MineSteam/2.4.2';
 
 function normalizeLoader(loader) {
   const value = String(loader || '').trim().toLowerCase();
@@ -26,14 +26,8 @@ function resolveLoaderFromDependencies(dependencies = {}, loaders = []) {
     loader: 'fabric',
     version: dependencies['fabric-loader']
   };
-  if (dependencies.neoforge) return {
-    loader: 'neoforge',
-    version: dependencies.neoforge
-  };
-  if (dependencies.forge) return {
-    loader: 'forge',
-    version: dependencies.forge
-  };
+  if (dependencies.neoforge) return { loader: 'neoforge', version: dependencies.neoforge };
+  if (dependencies.forge) return { loader: 'forge', version: dependencies.forge };
 
   const loader = getLoaderType(loaders);
   return { loader, version: null };

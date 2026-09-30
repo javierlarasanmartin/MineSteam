@@ -11,44 +11,24 @@ function isInside(root, target) {
     const rootResolved = path.resolve(root);
     const targetResolved = path.resolve(target);
 
-    return (
-        targetResolved === rootResolved ||
-        targetResolved.startsWith(rootResolved + path.sep)
-    );
+    return (targetResolved === rootResolved || targetResolved.startsWith(rootResolved + path.sep));
 }
 
 function addUnique(entries, filePath) {
     const resolved = path.resolve(filePath);
 
-    if (
-        !entries.some(
-            entry => path.resolve(entry) === resolved
-        )
-    ) {
+    if (!entries.some(entry => path.resolve(entry) === resolved)) {
         entries.push(resolved);
     }
 }
 
-function buildClasspath(
-    instanceMinecraftDir,
-    minecraftVersion,
-    libraries = [],
-    options = {}
-) {
-    if (
-        !instanceMinecraftDir ||
-        !minecraftVersion
-    ) {
-        throw new Error(
-            'No se puede construir el classpath sin instancia y versión'
-        );
+function buildClasspath(instanceMinecraftDir, minecraftVersion, libraries = [], options = {}) {
+    if (!instanceMinecraftDir || !minecraftVersion) {
+        throw new Error('No se puede construir el classpath sin instancia y versión');
     }
 
     const minecraftRoot = path.resolve(instanceMinecraftDir);
-    const librariesRoot = path.join(
-        minecraftRoot,
-        'libraries'
-    );
+    const librariesRoot = path.join(minecraftRoot, 'libraries');
 
     fs.ensureDirSync(librariesRoot);
 
@@ -58,9 +38,7 @@ function buildClasspath(
         if (!library) continue;
 
         const candidate =
-            typeof library === 'string'
-                ? library
-                : library.path || library.destination;
+            typeof library === 'string' ? library : library.path || library.destination;
 
         if (!candidate) continue;
 
@@ -70,15 +48,10 @@ function buildClasspath(
                 : path.resolve(librariesRoot, candidate);
 
         if (!isInside(librariesRoot, absolute)) {
-            throw new Error(
-                `Biblioteca fuera del directorio permitido: ${candidate}`
-            );
+            throw new Error(`Biblioteca fuera del directorio permitido: ${candidate}`);
         }
 
-        if (
-            fs.existsSync(absolute) &&
-            fs.statSync(absolute).isFile()
-        ) {
+        if (fs.existsSync(absolute) && fs.statSync(absolute).isFile()) {
             addUnique(entries, absolute);
         }
     }
@@ -99,29 +72,18 @@ function buildClasspath(
 
     // El cliente debe quedar en el classpath, pero después de las bibliotecas.
     // Verificamos la ruta para evitar path traversal.
-    const safeVersionJar = resolveInside(
-        minecraftRoot,
-        versionJar
-    );
+    const safeVersionJar = resolveInside(minecraftRoot, versionJar);
 
-    if (
-        fs.existsSync(safeVersionJar) &&
-        fs.statSync(safeVersionJar).isFile()
-    ) {
+    if (fs.existsSync(safeVersionJar) && fs.statSync(safeVersionJar).isFile()) {
         addUnique(entries, safeVersionJar);
     }
     }
 
     if (entries.length === 0) {
-        throw new Error(
-            'Classpath vacío: no se encontraron librerías ni el JAR de Minecraft'
-        );
+        throw new Error('Classpath vacío: no se encontraron librerías ni el JAR de Minecraft');
     }
 
     return entries.map(normalizePath);
 }
 
-module.exports = {
-    buildClasspath,
-    isInside
-};
+module.exports = { buildClasspath, isInside };

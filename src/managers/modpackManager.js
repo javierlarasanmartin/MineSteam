@@ -23,9 +23,4 @@ async function importCurseForge(zipPath, instanceName) {
   return legacy.importCurseForgeZip(zipPath, instanceName);
 }
 
-module.exports = {
-  searchModrinth,
-  getModrinth,
-  install,
-  importCurseForge
-};
+module.exports = { searchModrinth, getModrinth, install, importCurseForge };

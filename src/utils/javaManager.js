@@ -103,10 +103,7 @@ async function resolveRequiredJavaVersion(minecraftVersion) {
 
 function detectSystemJavaVersion() {
     try {
-        const output = execSync(process.platform === 'win32' ? 'java -version 2>&1' : 'java -version 2>&1', {
-            encoding: 'utf8',
-            windowsHide: true
-        });
+        const output = execSync('java -version 2>&1', { encoding: 'utf8', windowsHide: true });
         const match = output.match(/version\s+"(\d+)(?:\.(\d+))?/i);
         if (!match) return 0;
         const major = Number(match[1]);
@@ -239,7 +236,7 @@ async function downloadFile(url, destPath, retries = 3) {
         try {
             const response = await axios({
                 method: 'GET', url, responseType: 'stream', timeout: 300000,
-                headers: { 'User-Agent': 'MineSteam/2.4.1' }
+                headers: { 'User-Agent': 'MineSteam/2.4.2' }
             });
             const writer = fs.createWriteStream(destPath);
             response.data.pipe(writer);

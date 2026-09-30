@@ -13,11 +13,7 @@ function ensureForgeLauncherProfile(instanceMinecraftDir, minecraftVersion) {
 
   const profiles = {
     profiles: {
-      minesteam: {
-        name: 'MineSteam',
-        type: 'custom',
-        lastVersionId: String(minecraftVersion)
-      }
+      minesteam: { name: 'MineSteam', type: 'custom', lastVersionId: String(minecraftVersion) }
     },
     settings: {},
     version: 3
@@ -30,7 +26,7 @@ function ensureForgeLauncherProfile(instanceMinecraftDir, minecraftVersion) {
 async function getAvailableVersions(minecraftVersion) {
   const metadataUrl = 'https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml';
   try {
-    const response = await axios.get(metadataUrl, { timeout: 20000, headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/xml,text/xml,*/*' } });
+    const response = await axios.get(metadataUrl, { timeout: 20000, headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept': 'application/xml,text/xml,*/*' } });
     const xml = String(response.data || '');
     const all = [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map(m => m[1]);
     const prefix = `${minecraftVersion}-`;
@@ -44,7 +40,7 @@ async function getAvailableVersions(minecraftVersion) {
   try {
     const promotions = await axios.get('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json', {
       timeout: 20000,
-      headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'application/json' }
+      headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept': 'application/json' }
     });
     const promos = promotions.data?.promos || {};
     const result = [];
@@ -59,7 +55,7 @@ async function getAvailableVersions(minecraftVersion) {
     try {
       const index = await axios.get('https://maven.minecraftforge.net/net/minecraftforge/forge/', {
         timeout: 20000,
-        headers: { 'User-Agent': 'MineSteam/2.4.1', 'Accept': 'text/html,*/*' }
+        headers: { 'User-Agent': 'MineSteam/2.4.2', 'Accept': 'text/html,*/*' }
       });
       const prefix = `${minecraftVersion}-`;
       const matches = [...String(index.data || '').matchAll(new RegExp(`href=[\"'](${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^/\"']+)/`, 'gi'))]
@@ -109,11 +105,7 @@ async function install(minecraftVersion, instanceMinecraftDir, preferredVersion,
       const proc = spawn(javaExecutable, [
         '-jar', installerPath,
         '--installClient', instanceMinecraftDir
-      ], {
-        cwd: instanceMinecraftDir,
-        stdio: 'inherit',
-        shell: false
-      });
+      ], { cwd: instanceMinecraftDir, stdio: 'inherit', shell: false });
 
       proc.on('error', reject);
       proc.on('close', code => {
@@ -134,11 +126,7 @@ async function install(minecraftVersion, instanceMinecraftDir, preferredVersion,
     const libraries = await services.downloadLoaderLibraries(profile.data, instanceMinecraftDir);
     logger.info(`Forge ${coordinate} preparado`);
 
-    return {
-      profile: profile.data,
-      libraries,
-      version: forgeVersion
-    };
+    return { profile: profile.data, libraries, version: forgeVersion };
   } catch (error) {
     logger.error(`Error instalando Forge: ${error.message}`);
     throw new Error(`Error instalando Forge ${minecraftVersion}: ${error.message}`);

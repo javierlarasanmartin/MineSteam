@@ -1,4 +1,4 @@
-# MineSteam 2.4.1
+# MineSteam 2.4.2
 
 Launcher de Minecraft centrado en una experiencia sencilla para usuarios nuevos, con una interfaz **Steampunk + Minecraft Vanilla** y herramientas avanzadas para gestionar instancias.
 
@@ -48,7 +48,7 @@ npm run test:architecture
 ## Estructura
 
 ```text
-MineSteam-2.4.1/
+MineSteam-2.4.2/
 ├── assets/
 ├── scripts/
 ├── src/
@@ -60,6 +60,7 @@ MineSteam-2.4.1/
 │   ├── minecraft/
 │   ├── modpacks/
 │   ├── mods/
+│   ├── renderer/
 │   └── utils/
 ├── index.html
 ├── main.js
@@ -80,3 +81,10 @@ https://github.com/javierlarasanmartin/Minesteam
 ## Licencia
 
 MIT
+
+## Fase 6.1.2 — Bootstrap del renderer
+
+El arranque del renderer se encuentra separado en `src/renderer/bootstrap.js`.
+`renderer.js` conserva la lógica existente de la interfaz y ya no registra sus propios
+handlers de `DOMContentLoaded`. Esto permite seguir modularizando el renderer sin
+alterar el comportamiento de la interfaz.

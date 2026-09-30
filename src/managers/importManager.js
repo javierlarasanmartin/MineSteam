@@ -13,7 +13,4 @@ async function importCurseForge(zipPath, instanceName) {
   return legacy.importCurseForgeZip(zipPath, instanceName);
 }
 
-module.exports = {
-  importFile,
-  importCurseForge
-};
+module.exports = { importFile, importCurseForge };

@@ -11,14 +11,8 @@ const PATTERNS = [
         pattern: /Could not create the Java Virtual Machine/i,
         cause: 'Java no pudo iniciar la máquina virtual.'
     },
-    {
-        pattern: /Unable to access jarfile/i,
-        cause: 'Falta un archivo JAR requerido.'
-    },
-    {
-        pattern: /Mixin apply failed|MixinApplyError/i,
-        cause: 'Un mod Mixin no pudo aplicarse.'
-    },
+    { pattern: /Unable to access jarfile/i, cause: 'Falta un archivo JAR requerido.' },
+    { pattern: /Mixin apply failed|MixinApplyError/i, cause: 'Un mod Mixin no pudo aplicarse.' },
     {
         pattern: /ModResolutionException|Incompatible mods/i,
         cause: 'Hay mods incompatibles o falta una dependencia.'
@@ -27,10 +21,7 @@ const PATTERNS = [
         pattern: /NoSuchMethodError|NoClassDefFoundError/i,
         cause: 'Una biblioteca o mod no coincide con la versión instalada.'
     },
-    {
-        pattern: /fabric loader/i,
-        cause: 'Existe un problema relacionado con Fabric Loader.'
-    }
+    { pattern: /fabric loader/i, cause: 'Existe un problema relacionado con Fabric Loader.' }
 ];
 
 function readTail(filePath, maxBytes = 256 * 1024) {
@@ -64,44 +55,29 @@ function analyzeText(text) {
     return {
         severity: uniqueCauses.length ? 'error' : 'unknown',
         causes: uniqueCauses,
-        likelyCause:
-            uniqueCauses[0] ||
-            'No se pudo determinar automáticamente la causa.'
+        likelyCause: uniqueCauses[0] || 'No se pudo determinar automáticamente la causa.'
     };
 }
 
 function findLogCandidates(instancePath) {
     if (!instancePath) return [];
 
-    const roots = [
-        path.join(instancePath, '.minecraft'),
-        instancePath
-    ];
+    const roots = [path.join(instancePath, '.minecraft'), instancePath];
 
     const found = [];
 
     for (const root of roots) {
-        for (const relative of [
-            'logs/latest.log',
-            'logs/debug.log',
-            'minecraft-runtime.log'
-        ]) {
+        for (const relative of ['logs/latest.log', 'logs/debug.log', 'minecraft-runtime.log']) {
             const candidate = path.join(root, relative);
 
-            if (
-                fs.existsSync(candidate) &&
-                fs.statSync(candidate).isFile()
-            ) {
+            if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
                 found.push(candidate);
             }
         }
 
         const crashDir = path.join(root, 'crash-reports');
 
-        if (
-            fs.existsSync(crashDir) &&
-            fs.statSync(crashDir).isDirectory()
-        ) {
+        if (fs.existsSync(crashDir) && fs.statSync(crashDir).isDirectory()) {
             for (const file of fs.readdirSync(crashDir)) {
                 if (/\.txt$/i.test(file)) {
                     found.push(path.join(crashDir, file));
@@ -122,15 +98,7 @@ function analyzeInstance(instancePath) {
         combined += readTail(file);
     }
 
-    return {
-        success: true,
-        analyzedFiles: files,
-        ...analyzeText(combined)
-    };
+    return { success: true, analyzedFiles: files, ...analyzeText(combined) };
 }
 
-module.exports = {
-    analyzeText,
-    analyzeInstance,
-    findLogCandidates
-};
+module.exports = { analyzeText, analyzeInstance, findLogCandidates };

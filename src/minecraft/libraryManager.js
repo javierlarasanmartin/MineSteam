@@ -11,13 +11,10 @@ function normalizeRelativePath(value) {
         return null;
     }
 
-    const normalized = value
-        .replace(/\\/g, '/')
-        .replace(/^\/+/, '');
+    const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
 
     if (
-        normalized.includes('\0') ||
-        normalized.split('/').some(part => part === '..') ||
+        normalized.includes('\0') || normalized.split('/').some(part => part === '..') ||
         path.posix.isAbsolute(normalized)
     ) {
         return null;
@@ -49,31 +46,21 @@ function mavenCoordinateToPath(name, classifier = null, extension = 'jar') {
     }
 
     const fileName =
-        `${artifact}-${version}` +
-        (resolvedClassifier ? `-${resolvedClassifier}` : '') +
+        `${artifact}-${version}` + (resolvedClassifier ? `-${resolvedClassifier}` : '') +
         `.${extension}`;
 
-    return path.posix.join(
-        ...group.split('.'),
-        artifact,
-        version,
-        fileName
-    );
+    return path.posix.join(...group.split('.'), artifact, version, fileName);
 }
 
 function repositoryForLibrary(name, fallback) {
     const group = String(name || '').split(':')[0] || '';
 
-    if (
-        group === 'net.fabricmc' ||
-        group.startsWith('net.fabricmc.')
-    ) {
+    if (group === 'net.fabricmc' || group.startsWith('net.fabricmc.')) {
         return 'https://maven.fabricmc.net/';
     }
 
     if (
-        group === 'org.ow2.asm' ||
-        group.startsWith('org.ow2.asm.') ||
+        group === 'org.ow2.asm' || group.startsWith('org.ow2.asm.') ||
         group === 'org.spongepowered' ||
         group.startsWith('org.spongepowered.')
     ) {
@@ -90,26 +77,16 @@ function normalizeArtifact(lib, artifact, type, librariesRoot, fallbackRepositor
     let url = artifact.url || null;
 
     if (!relativePath && lib?.name) {
-        const classifier =
-            type === 'native'
-                ? null
-                : artifact.classifier || null;
+        const classifier = type === 'native' ? null : artifact.classifier || null;
 
         relativePath = normalizeRelativePath(
-            mavenCoordinateToPath(
-                lib.name,
-                classifier,
-                artifact.extension || 'jar'
-            )
+            mavenCoordinateToPath(lib.name, classifier, artifact.extension || 'jar')
         );
     }
 
     if (!relativePath) return null;
 
-    const repository = repositoryForLibrary(
-        lib?.name,
-        fallbackRepository
-    );
+    const repository = repositoryForLibrary(lib?.name, fallbackRepository);
 
     if (
         !url ||
@@ -122,19 +99,14 @@ function normalizeArtifact(lib, artifact, type, librariesRoot, fallbackRepositor
         url = `${repository.replace(/\/?$/, '/')}${relativePath}`;
     }
 
-    const destination = resolveInside(
-        librariesRoot,
-        path.join(librariesRoot, relativePath)
-    );
+    const destination = resolveInside(librariesRoot, path.join(librariesRoot, relativePath));
 
     return {
         type,
         path: relativePath,
         url: String(url),
         sha1: artifact.sha1 || null,
-        size: Number.isFinite(Number(artifact.size))
-            ? Number(artifact.size)
-            : null,
+        size: Number.isFinite(Number(artifact.size)) ? Number(artifact.size) : null,
         destination
     };
 }
@@ -155,10 +127,7 @@ function selectNativeClassifier(lib, classifier) {
 
     for (const key of candidates) {
         if (lib.downloads.classifiers[key]) {
-            return {
-                classifier: key,
-                ...lib.downloads.classifiers[key]
-            };
+            return { classifier: key, ...lib.downloads.classifiers[key] };
         }
     }
 
@@ -169,6 +138,18 @@ function sha1File(filePath) {
     const hash = crypto.createHash('sha1');
     const data = fs.readFileSync(filePath);
     return hash.update(data).digest('hex');
+}
+
+// true si el archivo existe y, cuando se indica un SHA-1, coincide con él.
+function fileMatchesSha1(filePath, expectedSha1) {
+    if (!fs.existsSync(filePath)) return false;
+    if (!expectedSha1) return true;
+
+    try {
+        return sha1File(filePath).toLowerCase() === String(expectedSha1).toLowerCase();
+    } catch (_) {
+        return false;
+    }
 }
 
 function copyFromCache(cachePath, destination) {
@@ -241,10 +222,7 @@ async function resolveProfileLibraries({
             libraries.push(artifact);
         }
 
-        const native = selectNativeClassifier(
-            lib,
-            classifier
-        );
+        const native = selectNativeClassifier(lib, classifier);
 
         if (native) {
             const nativeArtifact = normalizeArtifact(
@@ -334,6 +312,9 @@ async function resolveProfileLibraries({
 }
 
 module.exports = {
+    sha1File,
+    fileMatchesSha1,
+    copyFromCache,
     normalizeRelativePath,
     mavenCoordinateToPath,
     normalizeArtifact,

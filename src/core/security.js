@@ -13,8 +13,7 @@ function resolveInside(root, candidate) {
   const candidateResolved = path.resolve(candidate);
 
   if (
-    candidateResolved !== rootResolved &&
-    !candidateResolved.startsWith(rootResolved + path.sep)
+    candidateResolved !== rootResolved && !candidateResolved.startsWith(rootResolved + path.sep)
   ) {
     throw new Error('La ruta está fuera del directorio permitido');
   }

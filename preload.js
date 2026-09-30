@@ -1,3 +1,4 @@
+console.log('[PRELOAD] iniciado', { sandbox: process.sandboxed, platform: process.platform });
 const { contextBridge, ipcRenderer } = require('electron');
 
 function subscribe(channel, callback) {
@@ -72,7 +73,6 @@ contextBridge.exposeInMainWorld('launcherAPI', {
   listInstanceMods: instancePath => ipcRenderer.invoke('list-instance-mods', instancePath),
   toggleInstanceMod: (instancePath, fileName, enabled) => ipcRenderer.invoke('toggle-instance-mod', instancePath, fileName, enabled),
   checkModUpdates: instancePath => ipcRenderer.invoke('check-mod-updates', instancePath),
-  updateInstanceMods: instancePath => ipcRenderer.invoke('update-instance-mods', instancePath),
   removeInstanceMod: (instancePath, fileName) => ipcRenderer.invoke('remove-instance-mod', instancePath, fileName),
   importCurseForgeZip: (zipPath, instanceName) => ipcRenderer.invoke('import-curseforge-zip', zipPath, instanceName),
   importZip: (zipPath, instanceName) => ipcRenderer.invoke('import-zip', zipPath, instanceName),
@@ -88,6 +88,7 @@ contextBridge.exposeInMainWorld('launcherAPI', {
   selectAccount: id => ipcRenderer.invoke('account-select', id),
   deleteAccount: id => ipcRenderer.invoke('account-delete', id),
 
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
   getCacheSize: () => ipcRenderer.invoke('get-cache-size'),
   getJavaStatus: () => ipcRenderer.invoke('java-status'),
@@ -108,3 +109,4 @@ contextBridge.exposeInMainWorld('launcherAPI', {
   onUpdateDownloaded: callback => subscribe('update-downloaded', callback),
   onUpdateDownloadProgress: callback => subscribe('update-download-progress', callback)
 });
+

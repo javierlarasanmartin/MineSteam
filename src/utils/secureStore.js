@@ -13,11 +13,7 @@ const getEncryptionKey = () => {
 const store = new Store({
   name: 'secure-data',
   encryptionKey: getEncryptionKey(),
-  defaults: {
-    tokens: {},
-    user: null,
-    settings: {}
-  }
+  defaults: { tokens: {}, user: null, settings: {} }
   // No uses 'schema' para evitar validaciones que fallen con datos previos
 });
 

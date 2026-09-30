@@ -1,7 +1,7 @@
 {
   "name": "minesteam",
-  "version": "2.4.1",
-  "description": "MineSteam 2.4.1 — Launcher de Minecraft con instancias, perfiles, servidores, Modrinth, contenido, backups, reparación, Java y gestión avanzada.",
+  "version": "2.4.2",
+  "description": "MineSteam 2.4.2 — Launcher de Minecraft con instancias, perfiles, servidores, Modrinth, contenido, backups, reparación, Java y gestión avanzada.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -11,8 +11,8 @@
     "build:win:portable": "electron-builder --win portable --x64",
     "build:linux": "electron-builder --linux AppImage",
     "build:mac": "electron-builder --mac dmg",
-    "test:architecture": "node scripts/smoke-architecture.js",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "test:architecture": "node scripts/smoke-architecture.js"
   },
   "author": "Javier Ignacio Lara San Martin",
   "license": "MIT",
@@ -32,13 +32,10 @@
   "dependencies": {
     "adm-zip": "^0.6.0",
     "axios": "^1.6.2",
-    "dotenv": "^16.6.1",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.9",
-    "express": "^5.2.1",
     "extract-zip": "^2.0.1",
     "fs-extra": "^11.2.0",
-    "open": "^11.0.0",
     "p-limit": "^3.1.0",
     "winston": "^3.11.0"
   },
@@ -58,9 +55,9 @@
       "bundled_versions/**/*",
       "index.html",
       "main.js",
-      "preload.js",
-      "renderer.js",
       "styles.css",
+      "renderer.js",
+      "preload.js",
       "!**/*.test.js",
       "!**/__tests__"
     ],
